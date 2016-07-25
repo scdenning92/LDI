@@ -1,0 +1,40 @@
+from scipy import interpolate
+from datetime import *
+import pandas_datareader.data as web
+
+def pullandinterpolateFRED(Real=True):
+    sdt=datetime.now() - timedelta(days=7)
+    edt=datetime.now()
+    
+    Real_yields=["DFII5", "DFII7", "DFII10", "DFII20", "DFII30"]
+    real_maturities=[5,7,10,20,30]
+    Nominals=["DGS1", "DGS2", "DGS3", "DGS5", "DGS7", "DGS10", "DGS20", "DGS30"]
+    Nominal_maturities=[1, 2, 3, 5, 7, 10, 20, 30]
+    
+    ##Pull yields from FRED
+    if Real==True:
+        data_pull=web.DataReader(Real_yields, 'fred', sdt, edt)
+        maturities=real_maturities
+    else:
+        data_pull=web.DataReader(Nominals, 'fred', sdt, edt)
+        maturities=Nominal_maturities
+    newyield=data_pull.transpose()
+    ##Only want latest date
+    parYields=list(newyield.ix[:,-1])
+    ##parYields=[.45, .59, .73, 1.07, 1.28]
+    
+    yields=parYields
+    
+    ##Interpolate par curve to six month intervals
+    time_interp=range(max(maturities)*2+1)
+    for i in range(0, len(time_interp)):
+        time_interp[i]=float(time_interp[i])/2
+    maturities.insert(0,0)
+    yields.insert(0,0)
+    
+    interp_function=interpolate.interp1d(maturities, yields)
+    
+    y=list(interp_function(time_interp))
+    
+    
+    return y, time_interp
